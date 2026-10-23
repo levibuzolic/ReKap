@@ -4,7 +4,6 @@ import ReKapCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A single-source editor. All edits are applied on export; source recordings stay intact.
 struct EditorView: View {
     let recording: Recording
     let exports: ExportManager
@@ -46,7 +45,7 @@ struct EditorView: View {
             HStack(spacing: 0) {
                 preview.frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
                 Divider()
-                inspector.frame(width: 300).fixedSize(horizontal: false, vertical: false)
+                inspector.frame(width: 300)
             }
             Divider()
             HStack {
@@ -282,7 +281,6 @@ private enum EditorError: LocalizedError {
         }
     }
 }
-
 
 /// Use AVKit's AppKit view directly. SwiftUI's VideoPlayer cross-import overlay
 /// can fail superclass lookup in a standalone SwiftPM app bundle.

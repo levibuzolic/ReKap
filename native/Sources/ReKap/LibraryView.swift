@@ -50,15 +50,15 @@ struct LibraryView: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 if model.isCapturing {
-                        Label(model.capture.elapsed.formatted(.number.precision(.fractionLength(0))) + "s",
-                              systemImage: model.capture.state == .paused ? "pause.fill" : "record.circle.fill")
-                            .foregroundStyle(.red).monospacedDigit().labelStyle(.titleAndIcon).fixedSize()
-                        Button(model.capture.state == .paused ? "Resume" : "Pause", systemImage: model.capture.state == .paused ? "play.fill" : "pause.fill") {
-                            Task { await model.pauseOrResume() }
-                        }.disabled(model.isBusy)
-                            .accessibilityLabel(model.capture.state == .paused ? "Resume Recording" : "Pause Recording")
-                        Button("Stop", systemImage: "stop.fill") { Task { await model.stop() } }.disabled(model.isBusy)
-                            .accessibilityLabel("Stop Recording")
+                    Label(model.capture.elapsed.formatted(.number.precision(.fractionLength(0))) + "s",
+                          systemImage: model.capture.state == .paused ? "pause.fill" : "record.circle.fill")
+                        .foregroundStyle(.red).monospacedDigit().labelStyle(.titleAndIcon).fixedSize()
+                    Button(model.capture.state == .paused ? "Resume" : "Pause", systemImage: model.capture.state == .paused ? "play.fill" : "pause.fill") {
+                        Task { await model.pauseOrResume() }
+                    }.disabled(model.isBusy)
+                        .accessibilityLabel(model.capture.state == .paused ? "Resume Recording" : "Pause Recording")
+                    Button("Stop", systemImage: "stop.fill") { Task { await model.stop() } }.disabled(model.isBusy)
+                        .accessibilityLabel("Stop Recording")
                 } else {
                     Button("New Recording", systemImage: "record.circle") { model.presentRecorder() }
                         .disabled(model.isBusy)

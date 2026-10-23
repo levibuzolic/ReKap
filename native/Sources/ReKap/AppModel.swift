@@ -17,7 +17,7 @@ import ScreenCaptureKit
     var selectedDisplayID: CGDirectDisplayID?
     var selectedWindowID: CGWindowID?
     var microphones: [AVCaptureDevice] = []
-    var shortcut: GlobalShortcut?
+    private var shortcut: GlobalShortcut?
     var openMainWindow: (() -> Void)?
     private var initialized = false
 

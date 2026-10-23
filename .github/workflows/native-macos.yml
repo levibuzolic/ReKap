@@ -1,14 +1,22 @@
-name: Native macOS
+name: CI
 
 on:
   push:
-    paths: ['native/**', '.github/workflows/native-macos.yml']
+    branches: [main]
+    tags: ['v*']
   pull_request:
-    paths: ['native/**', '.github/workflows/native-macos.yml']
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build-and-test:
@@ -16,25 +24,51 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Check deployment toolchain
         run: |
           sw_vers
           xcodebuild -version
           test "$(uname -m)" = arm64
           test "$(sw_vers -productVersion | cut -d. -f1)" -ge 27
-      - name: Install media integration dependencies
-        run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+      - name: Install CI tools
+        run: |
+          for tool in ffmpeg actionlint; do
+            brew list "$tool" >/dev/null 2>&1 || brew install "$tool"
+          done
+      - name: Check workflows, packaging scripts and app metadata
+        run: |
+          actionlint
+          bash -n native/scripts/build-app.sh
+          python3 -m py_compile native/scripts/bundle-encoders.py
+          plutil -lint native/Resources/Info.plist
       - name: Run native behavioural and media integration tests
-        run: swift test --package-path native
+        run: |
+          mkdir -p native/build
+          swift test --package-path native --xunit-output native/build/tests.xml 2>&1 | tee native/build/tests.log
       - name: Build standalone signed app
-        run: native/scripts/build-app.sh
+        run: native/scripts/build-app.sh 2>&1 | tee native/build/package.log
       - name: Verify bundled encoder independence
         run: |
           env -i PATH=/usr/bin:/bin native/build/ReKap.app/Contents/Helpers/ffmpeg -hide_banner -version
-          REKAP_FFMPEG="$PWD/native/build/ReKap.app/Contents/Helpers/ffmpeg" REKAP_FFPROBE="$(command -v ffprobe)" swift test --package-path native --filter ExportTests
+          REKAP_FFMPEG="$PWD/native/build/ReKap.app/Contents/Helpers/ffmpeg" REKAP_FFPROBE="$(command -v ffprobe)" swift test --package-path native --filter ExportTests --xunit-output native/build/bundled-exports.xml 2>&1 | tee native/build/bundled-exports.log
           codesign --verify --deep --strict native/build/ReKap.app
+          cmp LICENSE.md native/build/ReKap.app/Contents/Resources/LICENSE.md
+          cmp native/Resources/AppIcon.icns native/build/ReKap.app/Contents/Resources/AppIcon.icns
           ditto -c -k --keepParent native/build/ReKap.app native/build/ReKap.zip
-      - uses: actions/upload-artifact@v4
+      - name: Upload app
+        uses: actions/upload-artifact@v4
         with:
           name: ReKap-native-arm64
           path: native/build/ReKap.zip
+          if-no-files-found: error
+      - name: Upload test results and build logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReKap-ci-diagnostics
+          path: |
+            native/build/*.xml
+            native/build/*.log
+          if-no-files-found: ignore
