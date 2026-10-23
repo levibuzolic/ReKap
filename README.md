@@ -1,59 +1,92 @@
-> **Native rewrite:** See [native/README.md](native/README.md) for the macOS 27+
-> Apple silicon app, build instructions and verification workflow. The original
-> Electron app remains below as reference.
+# ReKap
 
-<p align="center">
-  <img src="https://getkap.co/static/favicon/kap.svg" height="64">
-  <h3 align="center">Kap</h3>
-  <p align="center">An open-source screen recorder built with web technology<p>
-  <p align="center"><a href="https://circleci.com/gh/wulkano/kap"><img src="https://circleci.com/gh/wulkano/Kap.svg?style=shield" alt="Build Status"></a> <a href="https://github.com/sindresorhus/xo"><img src="https://img.shields.io/badge/code_style-XO-5ed9c7.svg" alt="XO code style"></a></p>
-</p>
+Native SwiftUI/AppKit screen recorder for **macOS 27+ on Apple silicon**. No
+Electron, Node.js or plugin runtime is used by the native app. ReKap is a native
+rewrite of [Kap](https://github.com/wulkano/kap); the original
+MIT copyright notice is retained in [LICENSE.md](LICENSE.md).
 
-[![SWUbanner](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner2-direct.svg)](https://vshymanskyy.github.io/StandWithUkraine/)
+## Build and run
 
-## Get Kap
-
-Download the latest release:
-
-- [Apple silicon](https://getkap.co/api/download/arm64)
-- [Intel](https://getkap.co/api/download/x64)
-
-Or install with [Homebrew-Cask](https://caskroom.github.io):
+Requires Xcode 27 (including command line tools), Python 3, and Homebrew FFmpeg.
 
 ```sh
-brew install --cask kap
+brew install ffmpeg
+swift test --package-path native
+native/scripts/build-app.sh
+open native/build/ReKap.app
 ```
 
-## How To Use Kap
+The implementation, tests, resources and packaging scripts live in `native/`.
 
-Click the menu bar icon to bring up the screen recorder. After selecting what portion of the screen you'd like to record, hit the record button to start recording. Click the menu bar icon again to stop the recording.
+The build script creates a standalone ad-hoc signed app, including FFmpeg and its
+non-system dynamic libraries. Running the packaged app is recommended so macOS
+permissions belong to a stable app identity. Use `CONFIGURATION=debug` for a debug
+bundle or `REKAP_APP_PATH=/absolute/path/ReKap.app` to change the output location.
+The build process does not replace any installed application.
+Quit the generated app before rebuilding it. Each ad-hoc build has a new signing
+hash, so macOS may require screen recording permission to be granted again. A
+stable developer signing identity is needed for a smoother ongoing release flow.
 
-> Tip: While recording, Option-click the menu bar icon to pause or right-click for more options.
+## Workflow
 
-## Contribute
+Use **New Recording** to choose a display, window or region. Region selection
+supports dragging, dimensions in screen points and aspect presets. Press Return
+or Use Region to accept; Escape cancels. Recording options include 30/60 fps,
+cursor visibility, click highlighting, microphone device and system audio.
+Window capture records audio from the selected window's app; display and region
+capture can record system audio across apps.
+Screen recording and optional microphone permissions are requested by macOS.
+If denied, enable ReKap under System Settings → Privacy & Security, then retry.
 
-Read the [contribution guide](contributing.md).
+Pause/resume or stop from the menu bar, main window or the global shortcut
+(default Command-Shift-2; configurable in Settings). Paused time is excluded by
+assembling finalized recording segments without re-encoding or dropping captured
+frames. Original segments are retained for recovery. Quitting during recording
+finalizes the recording first.
 
-## Plugins
+Choose a recording or open a video. Preview, trim, resize, set frame rate or mute
+before exporting. Exports support GIF, APNG, H.264 MP4, HEVC MP4, VP9 WebM and AV1
+MP4. The smaller GIF option uses a reduced palette. Exports run sequentially,
+show progress, support cancellation,
+and preserve existing destination/source files. Completed exports can be copied
+as files, revealed in Finder, opened or opened with a chosen app.
 
-For more info on how to create plugins, read the [plugins docs](docs/plugins.md).
+History is stored in `~/Library/Application Support/ReKap/library.json`.
+Recordings default to `~/Movies/ReKap/Session-UUID/`. On launch, session manifests
+are scanned in current and previously selected recording folders for recovery;
+unreadable segments are skipped and playable segments are assembled. Corrupt final
+files are preserved separately when healthy segments can rebuild them. Corrupt
+files cannot always be recovered. Removing history entries does not delete videos.
+Imported files remain in their original locations.
 
-## Dev builds
+## Tests and CI
 
-Download [`main`](https://kap-artifacts.now.sh/main) or builds for any other branch using: `https://kap-artifacts.now.sh/<branch>`. Note that these builds are unsupported and may have issues.
+`swift test --package-path native` discovers `Tests/ReKapCoreTests` through the
+package test target. Tests cover history/settings, source preservation, region
+bounds, capture state preconditions, segment assembly/recovery, all six real
+export codecs, trim/resize/mute and cancellation/queue continuation. Media tests
+require `ffmpeg` and `ffprobe`; missing tools fail rather than silently skip.
 
-## Related Repositories
+GitHub Actions is the sole CI provider. The [CI workflow](.github/workflows/native-macos.yml)
+runs on every pull request, pushes to main, version tags (`v*`) and manual dispatch.
+It lints workflows, checks packaging scripts and app metadata, runs the full test
+suite, builds the app, and validates its signature, resources and bundled encoder. Successful runs
+upload the app ZIP; test reports and build logs are retained even on failure.
+New commits cancel superseded PR runs. There are no path filters that could leave
+a required check pending on a documentation-only PR.
+It targets GitHub's `xcode-27` Apple silicon runner. Screen capture permission and
+interactive UI behaviour require a logged-in desktop smoke test and are not
+claimed as covered by headless CI.
 
-- [Website](https://github.com/wulkano/kap-website)
-- [Aperture](https://github.com/wulkano/aperture)
+## Distribution
 
-## Newsletter
+Local builds use ad-hoc signing. Developer ID signing/notarization and public
+release hosting are separate release steps requiring the distributor's identity.
+Homebrew FFmpeg and some codecs/libraries use copyleft licenses; the bundle
+includes available notices and a dependency manifest. Public redistribution also
+requires the corresponding source and build materials for the exact bundled
+versions. This app bundle is a local development deliverable, not a complete
+public distribution package.
 
-[Subscribe](http://eepurl.com/ch90_1)
-
-## Thanks
-
-- [▲ Vercel](https://vercel.com/) for fast deployments served from the edge, hosting our website, downloads, and updates.
-- [● CircleCI](https://circleci.com/) for supporting the open source community and making our builds fast and reliable.
-- [△ Sentry](https://sentry.io/) for letting us know when Kap isn't behaving and helping us eradicate said behaviour.
-- Our [contributors](https://github.com/wulkano/kap/contributors) who help maintain Kap and make screen recording and sharing easy.
+See [verification evidence](native/VERIFICATION.md), [contributing](contributing.md)
+and [privacy](PRIVACY.md).

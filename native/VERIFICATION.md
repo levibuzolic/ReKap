@@ -31,9 +31,26 @@ passed local automated and permission-backed desktop verification.
   an empty environment and only `/usr/bin:/bin` in PATH.
 - Build helper Bash/Python syntax checks pass.
 - `.github/workflows/native-macos.yml` invokes the complete suite, packages the
-  app, reruns exports against the bundled encoder and uploads an artifact on
-  `native/**` and workflow changes. Remote CI has **not** been run; no push or PR
-  was requested.
+  app, reruns exports against the bundled encoder and uploads an artifact. It now
+  runs on every PR, main push, version tag and manual dispatch, with workflow lint
+  and diagnostic artifacts. Both remote CI runs for the original
+  rewrite passed in [PR #1](https://github.com/levibuzolic/ReKap/pull/1), including
+  tests, packaging, bundled-encoder validation and artifact upload.
+
+## Repository cleanup verification
+
+After removing the legacy implementation, all 18 tests passed using a fresh
+Swift build directory. The cleaned release app builds at
+`native/build/cleanup/ReKap.app`; signature verification and all four export
+tests against its bundled encoder pass. The moved icon is byte-identical to the
+original, and the app bundle includes the original MIT license. Build script
+syntax, retained local Markdown links and `git diff --check` also pass. The cleanup
+itself has not been pushed or run in remote CI.
+
+The subsequent GitHub Actions migration passes local actionlint validation and
+the full 18-test suite with report generation. Swift Testing emits a 14-test XML
+report; the four XCTest export results are retained in the test log. The revised
+workflow has not yet run remotely.
 
 ## Desktop evidence
 
@@ -69,17 +86,17 @@ permission. Test media stayed on this Mac.
   refreshing the final ad-hoc build's screen permission, actual capture succeeded.
   The user manually approved microphone access and authenticated macOS prompts.
 
-The final packaged executable includes all production fixes. Later changes were
-limited to regression tests and documentation; the verified bundle was retained
-to avoid invalidating its development-build privacy grants. Recording is stopped,
-audio options are off, and the default capture rate is restored to 30 fps.
+These desktop checks describe the rewrite's verified integration build. The
+subsequent repository cleanup removes the Electron sources/tooling and unused
+native code, and moves the app icon into native resources. It does not change
+capture, audio or export behavior. Recording was stopped, audio options were off,
+and the default capture rate was restored to 30 fps after testing.
 
 ## Deliverable and limits
 
-`native/build/ReKap.app` is the standalone local development app. Sources, build
-instructions and scope are in `native/README.md` and
-`docs/native-rewrite-plan.md`. The original Electron sources remain as reference
-and are not loaded by the native executable. Plugins are excluded by scope.
+`native/build/ReKap.app` is the standalone local development app. Build instructions
+and scope are in the root `README.md`. Plugins are excluded by scope. The obsolete
+Electron implementation and tooling have been removed; Git history preserves them.
 
 This evidence covers the tested Mac and scenarios, not every display or audio
 hardware combination. Local builds use ad-hoc signing; Developer ID signing,

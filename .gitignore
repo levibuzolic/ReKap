@@ -1,8 +1,5 @@
-node_modules
-/renderer/out
-/renderer/.next
-/app/dist
-/dist
-/dist-js
 /native/.build
 /native/build
+__pycache__/
+*.pyc
+.DS_Store

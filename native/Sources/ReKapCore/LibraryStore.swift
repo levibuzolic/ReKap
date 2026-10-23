@@ -4,7 +4,7 @@ import Observation
 @MainActor @Observable public final class LibraryStore {
     public private(set) var recordings: [Recording] = []
     public private(set) var errorMessage: String?
-    public let root: URL
+    private let root: URL
     private var indexURL: URL { root.appendingPathComponent("library.json") }
     private var removedPaths: Set<String> = []
     private struct Index: Codable {
@@ -40,15 +40,6 @@ import Observation
         var paths = removedPaths
         paths.remove(path)
         try persist(updated, removed: paths)
-        recordings = updated
-    }
-
-    public func rename(_ id: UUID, to title: String) throws {
-        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanTitle.isEmpty, let index = recordings.firstIndex(where: { $0.id == id }) else { return }
-        var updated = recordings
-        updated[index].title = cleanTitle
-        try persist(updated, removed: removedPaths)
         recordings = updated
     }
 
