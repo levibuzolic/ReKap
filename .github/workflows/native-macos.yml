@@ -1,0 +1,40 @@
+name: Native macOS
+
+on:
+  push:
+    paths: ['native/**', '.github/workflows/native-macos.yml']
+  pull_request:
+    paths: ['native/**', '.github/workflows/native-macos.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deployment toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          test "$(uname -m)" = arm64
+          test "$(sw_vers -productVersion | cut -d. -f1)" -ge 27
+      - name: Install media integration dependencies
+        run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+      - name: Run native behavioural and media integration tests
+        run: swift test --package-path native
+      - name: Build standalone signed app
+        run: native/scripts/build-app.sh
+      - name: Verify bundled encoder independence
+        run: |
+          env -i PATH=/usr/bin:/bin native/build/ReKap.app/Contents/Helpers/ffmpeg -hide_banner -version
+          REKAP_FFMPEG="$PWD/native/build/ReKap.app/Contents/Helpers/ffmpeg" REKAP_FFPROBE="$(command -v ffprobe)" swift test --package-path native --filter ExportTests
+          codesign --verify --deep --strict native/build/ReKap.app
+          ditto -c -k --keepParent native/build/ReKap.app native/build/ReKap.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ReKap-native-arm64
+          path: native/build/ReKap.zip

@@ -1,3 +1,7 @@
+> **Native rewrite:** See [native/README.md](native/README.md) for the macOS 27+
+> Apple silicon app, build instructions and verification workflow. The original
+> Electron app remains below as reference.
+
 <p align="center">
   <img src="https://getkap.co/static/favicon/kap.svg" height="64">
   <h3 align="center">Kap</h3>
